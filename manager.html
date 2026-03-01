@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Master Manager Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        /* --- Base Styles --- */
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #eef2f3; 
+            margin: 0; 
+            padding: 20px;
+            padding-top: 100px; /* Accounts for fixed navbar */
+        }
+
+        /* --- Fixed Navbar --- */
+        .navbar {
+            background: #1a252f; color: white; padding: 0 5%; height: 80px;
+            display: flex; justify-content: space-between; align-items: center;
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); box-sizing: border-box;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px; transition: all 0.3s ease; cursor: pointer; border-radius: 4px;
+        }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.2); }
+
+        /* --- Content Layout --- */
+        .flex-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .card { background: white; padding: 25px; border-radius: 10px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        /* --- Table Styling --- */
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #333; color: white; }
+        
+        /* Moving Actions Column Entity to the Right */
+        th:nth-child(6), td:nth-child(6) { 
+            padding-left: 60px; 
+            text-align: left;
+        }
+
+        /* --- Buttons --- */
+        button { cursor: pointer; border: none; border-radius: 4px; padding: 8px 12px; font-weight: 600; transition: 0.2s; }
+        .btn-add { background: #27ae60; color: white; }
+        .btn-qr { background: #8e44ad; color: white; margin-right: 8px; }
+        .btn-reset-single { background: #e67e22; color: white; }
+        .btn-reset-all { background: #c0392b; color: white; padding: 12px 20px; }
+
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-right: 10px; }
+        .status-done { color: #27ae60; font-weight: bold; }
+
+        /* --- Modal --- */
+        #qr-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; flex-direction: column;
+        }
+        #modal-content { background: white; padding: 40px; border-radius: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="qr-modal">
+        <div id="modal-content">
+            <h2 style="color: #333; margin-top: 0;">Employee Login QR</h2>
+            <div id="modal-qr"></div>
+            <p style="color: #666; margin-top: 15px;">Closing in <span id="timer">10</span>s</p>
+            <button onclick="closeModal()" style="background: #eee; color: #333; padding: 10px 20px;">Close Now</button>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="logo">TaskTracker</div>
+        <div class="nav-actions">
+            <button class="nav-btn" onclick="location.reload()">Refresh</button>
+            <button class="nav-btn" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="flex-header">
+        <h1 style="color: #1a252f; margin: 0;">Employee Monitor</h1>
+        <button class="btn-reset-all" onclick="resetAllEmployees()">⚠️ Reset All Employees</button>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0; color: #333;">Add New Employee</h3>
+        <input type="text" id="new-name" placeholder="Full Name">
+        <input type="text" id="new-tasks" placeholder="Task 1, Task 2..." style="width: 400px;">
+        <button class="btn-add" onclick="addEmployee()">+ Create & Generate ID</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th><th>Name</th><th>Current Task</th><th>Progress</th><th>Status</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+    </table>
+
+<script>
+    // SECURITY CHECK
+    if (localStorage.getItem("isLoggedIn") !== "true") {
+        window.location.replace("mlogin.html");
+    }
+
+    const _supabase = supabase.createClient('https://hpqjmthmwujuvpdcxycz.supabase.co', 'sb_publishable_RPorzIrjxeoUbPGnD25Zbw_shgxTxvL');
+    const ADMIN_PASS = "12345";
+    let countdown;
+
+    function logout() {
+        const input = prompt("Enter Admin Password to Logout:");
+        if (input === ADMIN_PASS) {
+            localStorage.removeItem("isLoggedIn");
+            window.location.replace("mlogin.html");
+        } else if (input !== null) {
+            alert("Incorrect Password.");
+        }
+    }
+
+    async function fetchData() {
+        if (document.activeElement.tagName === 'INPUT') return;
+        const { data, error } = await _supabase.from('tasks').select('*').order('id', { ascending: true });
+        if (error) return;
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+        data.forEach(t => {
+            const list = t.task_list || [];
+            const finished = t.is_done || t.current_step > list.length;
+            tbody.innerHTML += `<tr>
+                <td><strong>#${t.id}</strong></td>
+                <td>${t.employee_name}</td>
+                <td>${finished ? "---" : (list[t.current_step-1] || "Task 1")}</td>
+                <td>${Math.min(t.current_step - 1, list.length)} / ${list.length}</td>
+                <td class="${finished ? 'status-done' : ''}">${finished ? '✅ Complete' : '⏳ Working'}</td>
+                <td>
+                    <button class="btn-qr" onclick="showPopupQR(${t.id})">Show QR</button>
+                    <button class="btn-reset-single" onclick="resetEmployee(${t.id})">Reset</button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    function showPopupQR(id) {
+        clearInterval(countdown);
+        const qrContainer = document.getElementById('modal-qr');
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, { text: `index.html?id=${id}`, width: 250, height: 250 });
+        document.getElementById('qr-modal').style.display = 'flex';
+        let timeLeft = 10;
+        document.getElementById('timer').innerText = timeLeft;
+        countdown = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer').innerText = timeLeft;
+            if (timeLeft <= 0) closeModal();
+        }, 1000);
+    }
+
+    function closeModal() { document.getElementById('qr-modal').style.display = 'none'; clearInterval(countdown); }
+
+    async function addEmployee() {
+        let nameIn = document.getElementById('new-name');
+        let taskIn = document.getElementById('new-tasks');
+        if(!nameIn.value || !taskIn.value) return alert("Fill fields");
+        let name = nameIn.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        const tasks = taskIn.value.split(',').map(t => t.trim());
+        await _supabase.from('tasks').insert([{ employee_name: name, task_list: tasks, current_step: 1 }]);
+        nameIn.value = ''; taskIn.value = '';
+        fetchData();
+    }
+
+    async function resetEmployee(id) {
+        const input = prompt("Enter Admin Password to reset this employee:");
+        if (input === ADMIN_PASS) {
+            await _supabase.from('tasks').update({ current_step: 1, is_done: false }).eq('id', id);
+            fetchData();
+        } else if (input !== null) { alert("Incorrect Admin Password."); }
+    }
+
+    async function resetAllEmployees() {
+        const input = prompt("Enter Admin Password to RESET ALL employees:");
+        if (input === ADMIN_PASS) {
+            if (confirm("⚠️ This will reset progress for EVERYONE. Are you sure?")) {
+                await _supabase.from('tasks').update({ current_step: 1, is_done: false }).neq('id', 0);
+                fetchData();
+            }
+        } else if (input !== null) { alert("Incorrect Admin Password."); }
+    }
+
+    fetchData();
+    setInterval(fetchData, 10000);
+</script>
+</body>
+</html>

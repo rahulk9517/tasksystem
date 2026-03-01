@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Tracker Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { 
+            background: radial-gradient(circle at top left, #6366f1, #a855f7, #ec4899);
+            height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden;
+        }
+        .login-card {
+            background: #ffffff; padding: 3rem; border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 90%; max-width: 400px; text-align: center;
+            transition: transform 0.3s ease;
+        }
+        .logo-circle {
+            width: 60px; height: 60px; background: linear-gradient(135deg, #6366f1, #ec4899);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1rem; color: white; font-size: 1.5rem; font-weight: bold;
+        }
+        .company-name { font-size: 1.75rem; font-weight: 800; color: #1f2937; margin-bottom: 0.5rem;}
+        .input-wrapper { margin-bottom: 1.25rem; text-align: left; }
+        label { font-size: 0.8rem; font-weight: 600; color: #374151; display: block; margin-bottom: 5px; }
+        input { 
+            width: 100%; padding: 14px; border: 2px solid #f3f4f6; border-radius: 12px;
+            background: #f9fafb; outline: none; font-size: 1rem; transition: 0.2s;
+        }
+        input:focus { border-color: #6366f1; background: #fff; box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        .login-btn {
+            width: 100%; padding: 14px; background: #111827; color: white;
+            border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
+            transition: 0.2s;
+        }
+        .login-btn:hover { background: #000; transform: translateY(-2px); }
+        .login-btn:active { transform: translateY(0); }
+        
+        #status-msg { margin-top: 1rem; font-weight: 600; min-height: 20px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo-circle">T-T</div>
+        <h1 class="company-name">Tracker Pro</h1>
+        <p style="color:#666; margin-bottom: 2rem;">Admin Access Only</p>
+
+        <form id="loginForm">
+            <div class="input-wrapper">
+                <label>Username</label>
+                <input type="text" id="user" placeholder="admin" required autocomplete="username">
+            </div>
+            <div class="input-wrapper">
+                <label>Password</label>
+                <input type="password" id="pass" placeholder="•••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="login-btn">Secure Login</button>
+        </form>
+        <div id="status-msg"></div>
+    </div>
+
+    <script>
+        // REDIRECT CHECK: Sends already logged-in admins straight to the dashboard
+        if (localStorage.getItem("isLoggedIn") === "true") {
+            window.location.replace("manager.html");
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            const msg = document.getElementById('status-msg');
+
+            // Logical check matching your manager dashboard
+            if (u === "admin" && p === "12345") {
+                msg.style.color = "#10b981";
+                msg.textContent = "Success! Redirecting...";
+                localStorage.setItem("isLoggedIn", "true");
+                setTimeout(() => window.location.replace("manager.html"), 800);
+            } else {
+                msg.style.color = "#ef4444";
+                msg.textContent = "Invalid Credentials";
+                // Shakes the card on error for better UX
+                const card = document.querySelector('.login-card');
+                card.style.transform = "translateX(5px)";
+                setTimeout(() => card.style.transform = "translateX(0)", 100);
+            }
+        });
+    </script>
+</body>
+</html>

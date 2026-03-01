@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Portal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Global Styles */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f4f7f6; 
+            padding-top: 100px; /* Adjusted to prevent content overlap */
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            background: #1a252f;
+            color: white;
+            padding: 0 5%;
+            height: 80px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0; 
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        /* Cleaned up margins for perfect vertical centering */
+        .logo { font-size: 1.5rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-actions { display: flex; gap: 15px; align-items: center; }
+        
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .nav-btn:hover { background: #e74c3c; border-color: #e74c3c; transform: translateY(-1px); }
+
+        /* Slidable Image Section */
+        .slider-container {
+            width: 100%;
+            height: 300px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .slider-wrapper {
+            display: flex;
+            width: 300%;
+            height: 100%;
+            animation: slide 15s infinite ease-in-out;
+        }
+        .slider-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Main Content & Entity Alignment */
+        .main-content { padding: 0 5%; max-width: 800px; margin: 0 auto 40px auto; position: relative; z-index: 10; }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+        }
+
+        /* Moving the Action area slightly right as requested */
+        #task-area {
+            padding-left: 10px;
+        }
+
+        /* Task Items */
+        .task-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 20px; 
+            border: 2px solid #f0f4f8; 
+            border-radius: 12px; 
+            margin-top: 20px;
+            background: #fff;
+            transition: 0.2s;
+        }
+        .task-item:hover { border-color: #3498db; }
+
+        input[type="checkbox"] { width: 28px; height: 28px; margin-right: 20px; cursor: pointer; accent-color: #27ae60; }
+        label { font-size: 1.1rem; font-weight: 600; color: #334e68; cursor: pointer; }
+        .progress-text { color: #9fb3c8; font-size: 0.9rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .slider-container { height: 200px; }
+            .navbar { height: 100px; flex-direction: column; justify-content: center; gap: 5px; }
+            body { padding-top: 120px; }
+        }
+
+        /* Animation */
+        @keyframes slide {
+            0%, 20% { transform: translateX(0%); }
+            25%, 45% { transform: translateX(-33.33%); }
+            50%, 70% { transform: translateX(-66.66%); }
+            75%, 100% { transform: translateX(0%); }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">TaskTracker</div>
+        <div class="nav-actions">
+            <button class="nav-btn" onclick="location.reload()">Refresh</button>
+            <button class="nav-btn" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div class="slider-container">
+        <div class="slider-wrapper">
+            <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80" alt="Office">
+            <img src="https://images.unsplash.com/photo-1497215842964-222b430dc094?auto=format&fit=crop&w=1200&q=80" alt="Meeting">
+            <img src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=1200&q=80" alt="Desk">
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <h2 id="emp-name" style="color: #102a43; margin-bottom: 5px;">Loading...</h2>
+            <div id="task-area"></div>
+            <p id="msg" style="display:none; color: #3498db; margin-top: 20px; font-weight: bold; text-align: center;">Updating...</p>
+        </div>
+    </div>
+
+<script>
+    const _supabase = supabase.createClient('https://hpqjmthmwujuvpdcxycz.supabase.co', 'sb_publishable_RPorzIrjxeoUbPGnD25Zbw_shgxTxvL');
+    const urlParams = new URLSearchParams(window.location.search);
+    const empId = urlParams.get('id');
+
+    // Fixed Logout Function
+    function logout() {
+        const inputId = prompt("Please enter your ID to logout:");
+        if (inputId === null) return; 
+
+        // Use loose equality (==) or string conversion to ensure match
+        if (String(inputId).trim() === String(empId).trim()) {
+            localStorage.removeItem("userId");
+            alert("Logout successful.");
+            window.location.href = "ulogin.html";
+        } else {
+            alert("Incorrect ID. Logout cancelled.");
+        }
+    }
+
+    async function loadTask() {
+        if (!empId) { 
+            document.getElementById('task-area').innerHTML = "<p style='color:red;'>Error: No Employee ID found in URL.</p>"; 
+            document.getElementById('emp-name').innerText = "Access Denied";
+            return; 
+        }
+
+        const { data: task, error } = await _supabase.from('tasks').select('*').eq('id', empId).single();
+
+        if (task) {
+            document.getElementById('emp-name').innerText = `Hello, ${task.employee_name}`;
+            const list = task.task_list || [task.task_name];
+            const step = task.current_step || 1;
+
+            if (step > list.length || task.is_done) {
+                document.getElementById('task-area').innerHTML = `
+                    <div style="text-align:center; padding: 30px;">
+                        <h1 style="font-size: 3rem;">✅</h1>
+                        <h3 style="color: #27ae60;">All Tasks Complete!</h3>
+                        <p style="color: #666; margin-top:10px;">Great job today.</p>
+                    </div>`;
+            } else {
+                document.getElementById('task-area').innerHTML = `
+                    <p class="progress-text">Step ${step} of ${list.length}</p>
+                    <div class="task-item">
+                        <input type="checkbox" id="cbox" onchange="nextStep(${task.id}, ${step}, ${list.length})">
+                        <label for="cbox">${list[step-1]}</label>
+                    </div>`;
+            }
+        } else {
+            document.getElementById('task-area').innerHTML = "Employee record not found.";
+        }
+    }
+
+    async function nextStep(id, current, total) {
+        document.getElementById('msg').style.display = 'block';
+        const isFinal = current >= total;
+        
+        const { error } = await _supabase.from('tasks')
+            .update({ 
+                current_step: current + 1, 
+                is_done: isFinal,
+                updated_at: new Date() 
+            }).eq('id', id);
+
+        if (!error) {
+            setTimeout(() => { location.reload(); }, 500);
+        } else {
+            alert("Error updating task. Check your connection.");
+            document.getElementById('msg').style.display = 'none';
+        }
+    }
+    
+    loadTask();
+</script>
+</body>
+</html>
