@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Login | Task System</title>
+    <title>Login | Task System</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
@@ -36,8 +36,9 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        h2 { margin-top: 0; font-weight: 300; letter-spacing: 1px; }
+        h2 { margin-top: 0; font-weight: 300; }
 
+        /* Scanner Viewport */
         #reader {
             width: 100%;
             background: #000;
@@ -57,9 +58,7 @@
             color: white;
             font-size: 16px;
             box-sizing: border-box;
-            outline: none;
         }
-        input:focus { border-color: var(--primary); }
 
         button {
             width: 100%;
@@ -71,10 +70,10 @@
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
-            transition: 0.2s;
+            transition: opacity 0.2s;
         }
 
-        button:active { transform: scale(0.98); opacity: 0.9; }
+        button:active { opacity: 0.8; }
 
         .btn-secondary {
             background: #34495e;
@@ -84,7 +83,7 @@
         #status-msg {
             font-size: 12px;
             color: #888;
-            margin-top: 15px;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -100,22 +99,26 @@
     
     <p style="margin: 15px 0; color: #64748b;">— OR —</p>
     
-    <input type="text" id="companyId" placeholder="index.html?id=XXX">
+    <input type="text" id="companyId" placeholder="Employee ID">
     <button onclick="login()">Continue</button>
     
     <div id="status-msg">Camera access required for scanning</div>
 </div>
-
 <script>
 const html5QrCode = new Html5Qrcode("reader");
-// Ensure baseUrl ends with a slash if needed for GitHub Pages
-const baseUrl = "https://rahulk9517.github.io/tasksystem/";
+const baseUrl = "https://rahulk9517.github.io//";
 
+/**
+ * STRICT VALIDATOR
+ * Only returns true if the text starts with 'index.html?id=' 
+ * followed by one or more digits.
+ */
 function isValidStrictPath(text) {
-    // Matches "index.html?id=" followed by numbers
+    // Regex: Must start (^) with index.html?id= and end ($) with digits (\d+)
     const strictPattern = /^index\.html\?id=\d+$/;
     
-    if (!text || text.toLowerCase().includes("http") || !strictPattern.test(text)) {
+    // Block if it's a full URL (no http/https allowed) or if it doesn't match the pattern
+    if (text.toLowerCase().includes("http") || !strictPattern.test(text)) {
         return false;
     }
     return true;
@@ -123,45 +126,45 @@ function isValidStrictPath(text) {
 
 window.onload = function () {
     const savedPath = localStorage.getItem("userId");
-    // FIXED: Corrected 'savPath' to 'savedPath'
-    if (savedPath && isValidStrictPath(savedPath)) {
+    // Only auto-login if the saved string is the full valid path
+    if (savPath && isValidStrictPath(savPath)) {
         window.location.href = baseUrl + savedPath;
     }
 };
 
 function startScanner() {
     const statusMsg = document.getElementById('status-msg');
-    const config = { fps: 15, qrbox: { width: 250, height: 250 } };
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
     html5QrCode.start(
         { facingMode: "environment" }, 
         config,
         (decodedText) => {
+            // Check if the QR code contains the full required string
             if (!isValidStrictPath(decodedText)) {
-                statusMsg.innerText = "Invalid QR! Use correct Employee QR.";
+                statusMsg.innerText = "Invalid QR! ";
                 statusMsg.style.color = "#e74c3c";
+                alert("Please Enter Valid QR ID")
                 return; 
             }
 
             document.getElementById('companyId').value = decodedText;
-            statusMsg.innerText = "Verified! Logging in...";
+            statusMsg.innerText = "Full Path Verified!";
             statusMsg.style.color = "#27ae60";
             
             setTimeout(() => {
                 html5QrCode.stop().then(() => login());
-            }, 600);
+            }, 500);
         }
-    ).catch(err => {
-        statusMsg.innerText = "Camera Error: " + err;
-        console.error(err);
-    });
+    ).catch(err => console.error(err));
 }
 
 function login() {
     let input = document.getElementById('companyId').value.trim();
 
+    // BLOCK: If user typed "9", this will trigger the alert
     if (!isValidStrictPath(input)) {
-        alert("Incorrect Format!");
+        alert("Please Enter Correct ID");
         return;
     }
 
@@ -170,6 +173,6 @@ function login() {
 }
 </script>
 
-</body>
 
+</body>
 </html>
