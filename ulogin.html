@@ -5,175 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Task System</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
-
     <style>
-        :root {
-            --primary: #27ae60;
-            --bg: #0f172a;
-            --card-bg: rgba(255, 255, 255, 0.05);
-        }
-
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--bg);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: white;
-        }
-
-        .login-card {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 380px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        h2 { margin-top: 0; font-weight: 300; }
-
-        /* Scanner Viewport */
-        #reader {
-            width: 100%;
-            background: #000;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            border: 2px solid var(--primary);
-        }
-
-        input {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(0, 0, 0, 0.2);
-            color: white;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            background: var(--primary);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: opacity 0.2s;
-        }
-
-        button:active { opacity: 0.8; }
-
-        .btn-secondary {
-            background: #34495e;
-            margin-bottom: 10px;
-        }
-
-        #status-msg {
-            font-size: 12px;
-            color: #888;
-            margin-top: 10px;
-        }
+        :root { --primary: #27ae60; --bg: #0f172a; --card-bg: rgba(255, 255, 255, 0.05); }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; color: white; }
+        .login-card { background: var(--card-bg); padding: 30px; border-radius: 15px; width: 90%; max-width: 380px; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        #reader { width: 100%; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 20px; border: 2px solid var(--primary); }
+        input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(0, 0, 0, 0.2); color: white; font-size: 16px; box-sizing: border-box; outline: none; }
+        button { width: 100%; padding: 14px; background: var(--primary); border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 16px; font-weight: bold; transition: opacity 0.2s; }
+        .btn-secondary { background: #34495e; margin-bottom: 10px; }
+        #status-msg { font-size: 12px; color: #888; margin-top: 10px; }
     </style>
 </head>
-
 <body>
 
 <div class="login-card">
     <h2>Task System</h2>
-    
     <div id="reader"></div>
-    
     <button id="start-btn" class="btn-secondary" onclick="startScanner()">Start QR Scanner</button>
-    
     <p style="margin: 15px 0; color: #64748b;">— OR —</p>
-    
-    <input type="text" id="companyId" placeholder="Employee ID">
+    <input type="text" id="companyId" placeholder="index.html?id=ID">
     <button onclick="login()">Continue</button>
-    
     <div id="status-msg">Camera access required for scanning</div>
 </div>
+
 <script>
 const html5QrCode = new Html5Qrcode("reader");
 const baseUrl = "https://rahulk9517.github.io/tasksystem/";
 
-/**
- * STRICT VALIDATOR
- * Only returns true if the text starts with 'index.html?id=' 
- * followed by one or more digits.
- */
 function isValidStrictPath(text) {
-    // Regex: Must start (^) with index.html?id= and end ($) with digits (\d+)
     const strictPattern = /^index\.html\?id=\d+$/;
-    
-    // Block if it's a full URL (no http/https allowed) or if it doesn't match the pattern
-    if (text.toLowerCase().includes("http") || !strictPattern.test(text)) {
-        return false;
-    }
-    return true;
+    return !text.toLowerCase().includes("http") && strictPattern.test(text);
 }
 
 window.onload = function () {
     const savedPath = localStorage.getItem("userId");
-    // Only auto-login if the saved string is the full valid path
-    if (savPath && isValidStrictPath(savPath)) {
+    if (savedPath && isValidStrictPath(savedPath)) {
         window.location.href = baseUrl + savedPath;
     }
 };
 
 function startScanner() {
     const statusMsg = document.getElementById('status-msg');
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-    
-    html5QrCode.start(
-        { facingMode: "environment" }, 
-        config,
-        (decodedText) => {
-            // Check if the QR code contains the full required string
-            if (!isValidStrictPath(decodedText)) {
-                statusMsg.innerText = "Invalid QR! ";
-                statusMsg.style.color = "#e74c3c";
-                alert("Please Enter Valid QR ID")
-                return; 
-            }
-
-            document.getElementById('companyId').value = decodedText;
-            statusMsg.innerText = "Full Path Verified!";
-            statusMsg.style.color = "#27ae60";
-            
-            setTimeout(() => {
-                html5QrCode.stop().then(() => login());
-            }, 500);
+    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+        if (!isValidStrictPath(decodedText)) {
+            alert("Invalid QR ID");
+            return; 
         }
-    ).catch(err => console.error(err));
+        document.getElementById('companyId').value = decodedText;
+        setTimeout(() => { html5QrCode.stop().then(() => login()); }, 500);
+    }).catch(err => { statusMsg.innerText = "Camera Permission Denied"; });
 }
 
 function login() {
     let input = document.getElementById('companyId').value.trim();
-
-    // BLOCK: If user typed "9", this will trigger the alert
     if (!isValidStrictPath(input)) {
-        alert("Please Enter Correct ID");
+        alert("Please Enter Correct ID (index.html?id=NUMBER)");
         return;
     }
-
     localStorage.setItem("userId", input);
     window.location.href = baseUrl + input;
 }
 </script>
-
-
 </body>
 </html>
-
