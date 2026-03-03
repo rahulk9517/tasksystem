@@ -7,22 +7,104 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding-top: 80px; }
-        .navbar { background: #1a252f; color: white; padding: -0 5%; height: 80px; display: flex; justify-content: space-between; align-items: center; position: fixed; top:0; width: 100%; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .nav-btn { font-size:10px; background: #5a6369; border: 1px solid rgba(255,255,255); margin-top: 18px; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #f4f7f6; 
+            /* Pushes content down: 30px (Actionbar) + 80px (Navbar) = 110px */
+            padding-top: 110px; 
+        }
+
+        /* NEW TOP BAR (Black) */
+        .actionbar { 
+            background: #000000; 
+            color: #bdc3c7; 
+            padding: 0 5%; 
+            height: 30px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: fixed; 
+            top: 0; 
+            width: 100%; 
+            z-index: 1001; 
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        /* MAIN NAVBAR (Blue - moved down by 30px) */
+        .navbar { 
+            background: #1a252f; 
+            color: white; 
+            padding: 0 5%; 
+            height: 80px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            position: fixed; 
+            top: 30px; /* Starts after the black bar */
+            width: 100%; 
+            z-index: 1000; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2); 
+        }
+
+        .nav-btn { 
+            font-size: 10px; 
+            background: #5a6369; 
+            border: 1px solid rgba(255,255,255, 0.3); 
+            color: white; 
+            padding: 6px 12px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin-left: 5px; 
+            transition: background 0.3s;
+            margin-top: 17px;
+        }
+
+        .nav-btn:hover { background: #7f8c8d; }
+
         .slider-container { width: 100%; height: 250px; overflow: hidden; position: relative; }
         .slider-wrapper { display: flex; width: 300%; height: 100%; animation: slide 15s infinite ease-in-out; }
         .slider-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-        .container { width: calc(100% - 32px); max-width: 400px; background: white;  padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.4); margin-top: 10px ; margin-left: auto; margin-right: auto; }
-        .task-item { display: flex; align-items: center; padding: 20px; border: 2px solid #eee; border-radius: 8px; margin-top: 15px; }
-        input[type="checkbox"] {width: 25px; height: 25px; margin-right: 15px; cursor: pointer;}
-        @keyframes slide { 0%, 20% { transform: translateX(0%); } 25%, 45% { transform: translateX(-33.33%); } 50%, 70% { transform: translateX(-66.66%); } 75%, 100% { transform: translateX(0%); } }
+
+        .container { 
+            width: calc(100% - 32px); 
+            max-width: 400px; 
+            background: white;  
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4); 
+            margin: 20px auto; 
+        }
+
+        .task-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 15px; 
+            border: 1px solid #eee; 
+            border-radius: 8px; 
+            margin-top: 15px; 
+            background: #fafafa;
+        }
+
+        input[type="checkbox"] { width: 22px; height: 22px; margin-right: 15px; cursor: pointer; }
+
+        @keyframes slide { 
+            0%, 25% { transform: translateX(0%); } 
+            33%, 58% { transform: translateX(-33.33%); } 
+            66%, 91% { transform: translateX(-66.66%); } 
+            100% { transform: translateX(0%); } 
+        }
     </style>
 </head>
 <body>
 
+    <div class="actionbar">
+        
+    </div>
+
     <nav class="navbar">
-        <div style="font-weight:bold; text-transform:uppercase; padding-top: 16px;">TaskTracker</div>
+        <div style="font-weight:bold; text-transform:uppercase; padding-top: 17px;">TaskTracker</div>
         <div>
             <button class="nav-btn" onclick="logout()">Logout</button>
         </div>
@@ -37,21 +119,22 @@
     </div>
 
     <div class="container">
-        <h2 id="emp-name" >Loading......</h2>
+        <h2 id="emp-name">Loading...</h2>
         <div id="task-area"></div>
-        <p id="msg" style="display:none; color: #070830; text-align:center; margin-top:10px;">Updating... Please wait</p>
+        <p id="msg" style="display:none; color: #34495e; text-align:center; margin-top:15px; font-size: 0.9em;">Updating... Please wait</p>
     </div>
-
 <script>
+    // Initialize Supabase
     const _supabase = supabase.createClient('https://hpqjmthmwujuvpdcxycz.supabase.co', 'sb_publishable_RPorzIrjxeoUbPGnD25Zbw_shgxTxvL');
     const urlParams = new URLSearchParams(window.location.search);
     const empId = urlParams.get('id');
+
 
     function logout() {
         const inputId = prompt("Enter your ID to logout:");
         if (inputId === empId) {
             localStorage.removeItem("userId");
-            window.location.href = "ulogin.html"; // Clears the ID from the URL bar
+            window.location.href = "ulogin.html"; 
         } else if (inputId !== null) {
             alert("Incorrect ID.");
         }
@@ -59,19 +142,22 @@
 
     async function loadTask() {
         if (!empId) { window.location.href = "ulogin.html"; return; }
+        
         const { data: task, error } = await _supabase.from('tasks').select('*').eq('id', empId).single();
+        
         if (task) {
             document.getElementById('emp-name').innerText = `Hello, ${task.employee_name}`;
             const list = task.task_list || [];
             const step = task.current_step || 1;
+            
             if (step > list.length || task.is_done) {
-                document.getElementById('task-area').innerHTML = "<h3 style='color: #27ae60; text-align:center; padding: 20px;'>✅ All Tasks Completed!<br> Stay Updated!</h3>";
+                document.getElementById('task-area').innerHTML = "<h3 style='color: #27ae60; text-align:center; padding: 20px;'>✅ All Tasks Completed!<br>Stay Updated!</h3>";
             } else {
                 document.getElementById('task-area').innerHTML = `
-                    <p style="color:#9fb3c8; font-weight:bold; padding-top: 2px">STEP ${step} OF ${list.length}</p>
+                    <p style="color:#7f8c8d; font-size: 12px; font-weight:bold; margin-top: 10px;">STEP ${step} OF ${list.length}</p>
                     <div class="task-item">
-                        <input type="checkbox" onchange="nextStep(${task.id}, ${step}, ${list.length})">
-                        <label style="font-weight:bold; color:#334e68;">${list[step-1]}</label>
+                        <input type="checkbox" onchange="nextStep('${task.id}', ${step}, ${list.length})">
+                        <label style="font-weight:600; color:#2c3e50;">${list[step-1]}</label>
                     </div>`;
             }
         }
@@ -83,10 +169,9 @@
         await _supabase.from('tasks').update({ current_step: current + 1, is_done: isFinal }).eq('id', id);
         setTimeout(() => location.reload(), 500);
     }
+
     loadTask();
+
 </script>
 </body>
 </html>
-
-
-
