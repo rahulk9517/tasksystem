@@ -173,8 +173,52 @@
     loadTask();
 
 </script>
+    <script type="module">
+  // 1. Import the App plugin to control the Back Button
+  import { App } from 'https://cdn.jsdelivr.net/npm/@capacitor/app@latest/+esm';
+
+  // --- FEATURE 1: EXIT ALERT ---
+  App.addListener('backButton', ({ canGoBack }) => {
+    // If the user is on the login page or home page (can't go back further)
+    if (!canGoBack) {
+      const exit = confirm("Are you sure you want to exit TaskTracker?");
+      if (exit) {
+        App.exitApp();
+      }
+    } else {
+      // If there is a page history, just go back normally
+      window.history.back();
+    }
+  });
+
+  // --- FEATURE 2: SWIPE TO REFRESH ---
+  let touchStartY = 0;
+
+  document.addEventListener('touchstart', e => {
+    // Record where the finger started touching
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    const touchEndY = e.changedTouches[0].clientY;
+    
+    // Check 3 things:
+    // 1. Did the user swipe DOWN? (End > Start)
+    // 2. Was it a long swipe? (> 150 pixels)
+    // 3. Are we at the very top of the page? (scrollY === 0)
+    if (touchEndY > touchStartY + 150 && window.scrollY === 0) {
+      
+      // OPTIONAL: Vibrate slightly to indicate refresh (if you want)
+      if (navigator.vibrate) navigator.vibrate(50);
+      
+      // Reload the page
+      window.location.reload();
+    }
+  }, { passive: true });
+</script>
 </body>
 </html>
+
 
 
 
